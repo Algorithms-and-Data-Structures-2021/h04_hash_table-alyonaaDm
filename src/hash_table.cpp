@@ -18,27 +18,62 @@ namespace itis {
     }
 
     // Tip: allocate hash-table buckets
+    buckets_ = std::vector<Bucket>{};
+    buckets_.resize(capacity);
   }
 
   std::optional<std::string> HashTable::Search(int key) const {
-    // Tip: compute hash code (index) and use linear search
+    // Tip: compute hash code (hash_code) and use linear search
+    int hash_code = hash(key);
+    auto bucket = buckets_[hash_code];
+    for (std::pair<int, std::string> field: bucket){
+        if(field.first == key){
+            return field.second;
+        }
+    }
     return std::nullopt;
   }
 
   void HashTable::Put(int key, const std::string &value) {
+    const int hash_code = hash(key);
     // Tip 1: compute hash code (index) to determine which bucket to use
     // Tip 2: consider the case when the key exists (read the docs in the header file)
-
-    if (static_cast<double>(num_keys_) / buckets_.size() >= load_factor_) {
+      for (std::pair<int, std::string> &field: buckets_[hash_code]){
+          if(field.first == key){
+              field.second = value;
+              return;
+          }
+      }
+      buckets_[hash_code].push_back(std::pair(key,value));
+      num_keys_++;
+      if (static_cast<double>(num_keys_) / buckets_.size() >= load_factor_) {
       // Tip 3: recompute hash codes (indices) for key-value pairs (create a new hash-table)
       // Tip 4: use utils::hash(key, size) to compute new indices for key-value pairs
-    }
+      std::vector<Bucket> temp = std::vector<Bucket>{};
+      auto tempSize= buckets_.size()*kGrowthCoefficient;
+      temp.resize(tempSize);
+      for (Bucket &bucket: buckets_){
+          for (std::pair<int, std::string> &field: bucket){
+              int index = utils::hash(field.first,tempSize);
+              temp[index].push_back(field);
+          }
+      }
+      buckets_ = temp;
+      }
   }
 
   std::optional<std::string> HashTable::Remove(int key) {
     // Tip 1: compute hash code (index) to determine which bucket to use
     // TIp 2: find the key-value pair to remove and make a copy of value to return
-    return std::nullopt;
+    int hash_code = hash(key);
+      for (std::pair<int, std::string> &field: buckets_[hash_code]){
+          if(field.first == key){
+              std::string newValue = field.second;
+              buckets_[hash_code].remove(field);
+              return newValue;
+          }
+      }
+      return std::nullopt;
   }
 
   bool HashTable::ContainsKey(int key) const {
